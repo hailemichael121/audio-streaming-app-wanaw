@@ -30,6 +30,7 @@ export default function AudioListScreen() {
   const monthName = getMonthName(monthNumber);
   const parts = getPartsForMonth(monthNumber);
   const currentPart = parts.find((p) => p.id === partNumber);
+  const partName = currentPart?.name || `Part ${partNumber}`;
 
   const [audios, setAudios] = useState<Audio[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,7 +38,7 @@ export default function AudioListScreen() {
   const [selectAudio, setSelectAudio] = useState<Audio | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
-  const { state, play, pause, resume } = useAudioPlayer();
+  const { state, playFromDay, pause, resume } = useAudioPlayer();
 
   useEffect(() => {
     setAudios(getAudios(monthNumber, partNumber, categoryId));
@@ -51,11 +52,25 @@ export default function AudioListScreen() {
 
   const handlePlayAudio = useCallback(
     (audio: Audio) => {
-      if (state.currentAudio?.id === audio.id && state.isPlaying) pause();
-      else if (state.currentAudio?.id === audio.id) resume();
-      else play(audio, filteredAudios);
+      if (state.currentAudio?.id === audio.id && state.isPlaying) {
+        pause();
+      } else if (state.currentAudio?.id === audio.id) {
+        resume();
+      } else {
+        // Play from this day's collection
+        playFromDay(audio, filteredAudios, `${monthName} - ${partName}`);
+      }
     },
-    [state.currentAudio, state.isPlaying, pause, resume, play, filteredAudios],
+    [
+      state.currentAudio,
+      state.isPlaying,
+      pause,
+      resume,
+      playFromDay,
+      filteredAudios,
+      monthName,
+      partName,
+    ],
   );
 
   const openPlaylistPicker = (audio: Audio) => {
@@ -103,7 +118,7 @@ export default function AudioListScreen() {
               <>
                 <div className="min-w-0 flex-1">
                   <h1 className="truncate text-lg font-bold">
-                    {monthName} · {currentPart?.name ?? `Part ${partNumber}`}
+                    {monthName} · {partName}
                   </h1>
                   <p className="text-xs text-muted-foreground">
                     {filteredAudios.length} of {audios.length} tracks
@@ -127,10 +142,7 @@ export default function AudioListScreen() {
           const isCurrent = state.currentAudio?.id === audio.id;
           const isPlaying = isCurrent && state.isPlaying;
           return (
-            <div
-              key={audio.id}
-              className="glass-card w-full p-3" // Changed from button to div
-            >
+            <div key={audio.id} className="glass-card w-full p-3">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => handlePlayAudio(audio)}

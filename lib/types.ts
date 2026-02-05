@@ -10,7 +10,7 @@ export interface Audio {
   duration?: number;
   localPath?: string; // Path for offline downloaded file
 }
-
+export type PlaylistSource = "queue" | "search" | "day" | "playlist";
 export interface Month {
   id: number;
   name: string;
@@ -42,8 +42,9 @@ export interface PlayerState {
   currentAudio: Audio | null;
   queue: Audio[];
   currentIndex: number;
-  playlist: Audio[]; // Added
-  playlistName: string; // Added
+  playlist: Audio[]; // Current playlist/queue to display
+  playlistName: string; // Dynamic playlist name based on source
+  playlistSource: "queue" | "search" | "day" | "playlist"; // Where the playlist came from
   isPlaying: boolean;
   isLoading: boolean;
   currentTime: number; // in seconds
@@ -56,7 +57,19 @@ export interface PlayerState {
 
 export interface AudioPlayerContextType {
   state: PlayerState;
-  play: (audio: Audio, queue?: Audio[]) => void;
+  play: (
+    audio: Audio,
+    queue?: Audio[],
+    sourceName?: string,
+    sourceType?: PlayerState["playlistSource"],
+  ) => void;
+  playFromDay: (audio: Audio, dayAudios: Audio[], dayName: string) => void;
+  playFromSearch: (audio: Audio, searchResults: Audio[]) => void;
+  playFromPlaylist: (
+    audio: Audio,
+    playlistAudios: Audio[],
+    playlistName: string,
+  ) => void;
   pause: () => void;
   resume: () => void;
   seek: (time: number) => void;
@@ -65,9 +78,9 @@ export interface AudioPlayerContextType {
   previous: () => void;
   toggleLoop: () => void;
   setPlaybackRate: (rate: number) => void;
-  addToPlaylist: (audio: Audio) => void; // Added
-  removeFromPlaylist: (audioId: string) => void; // Added
-  setPlaylistName: (name: string) => void; // Added
+  addToPlaylist: (audio: Audio) => void;
+  removeFromPlaylist: (audioId: string) => void;
+  setPlaylistName: (name: string) => void;
   setOfflineMode: (offline: boolean) => void;
 }
 

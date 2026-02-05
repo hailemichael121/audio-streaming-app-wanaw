@@ -28,8 +28,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     currentAudio: null,
     queue: [],
     currentIndex: -1,
-    playlist: [], // Added playlist array
-    playlistName: "Playlist", // Added playlist name
+    playlist: [], // Current playlist/queue to display
+    playlistName: "Queue", // Dynamic playlist name based on source
+    playlistSource: "queue", // 'queue' | 'search' | 'day' | 'playlist'
     isPlaying: false,
     isLoading: false,
     currentTime: 0,
@@ -75,7 +76,11 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const playAudioInternal = useCallback(
-    (audio: Audio) => {
+    (
+      audio: Audio,
+      playlistName?: string,
+      playlistSource?: PlayerState["playlistSource"],
+    ) => {
       if (!audioRef.current) return;
 
       const url = getPlayableUrl(audio.localPath || audio.url);
@@ -86,6 +91,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
         isPlaying: true,
         isLoading: true,
         currentTime: 0,
+        playlistName: playlistName || prev.playlistName,
+        playlistSource: playlistSource || prev.playlistSource,
       }));
 
       audioRef.current.src = url;
@@ -242,15 +249,75 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       audio.removeEventListener("canplay", clearBuffering);
     };
   }, [playAudioInternal, syncMediaSession]);
-
   const play = useCallback(
-    (audio: Audio, queue?: Audio[]) => {
+    (
+      audio: Audio,
+      queue?: Audio[],
+      sourceName?: string,
+      sourceType?: PlayerState["playlistSource"],
+    ) => {
       setState((prev) => {
         const nextQueue = queue && queue.length > 0 ? queue : prev.queue;
         const nextIndex = nextQueue.findIndex((item) => item.id === audio.id);
-        return { ...prev, queue: nextQueue, currentIndex: nextIndex };
+        const playlistName =
+          sourceName || (queue ? `${queue.length} tracks` : "Queue");
+        const playlistSource: PlayerState["playlistSource"] =
+          sourceType ?? "queue";
+        return {
+          ...prev,
+          queue: nextQueue,
+          currentIndex: nextIndex,
+          playlist: nextQueue, // Set playlist to the current queue
+          playlistName,
+          playlistSource,
+        };
       });
       playAudioInternal(audio);
+    },
+    [playAudioInternal],
+  );
+
+  const playFromDay = useCallback(
+    (audio: Audio, dayAudios: Audio[], dayName: string) => {
+      setState((prev) => ({
+        ...prev,
+        queue: dayAudios,
+        currentIndex: dayAudios.findIndex((item) => item.id === audio.id),
+        playlist: dayAudios,
+        playlistName: dayName,
+        playlistSource: "day",
+      }));
+      playAudioInternal(audio, dayName, "day");
+    },
+    [playAudioInternal],
+  );
+
+  const playFromSearch = useCallback(
+    (audio: Audio, searchResults: Audio[]) => {
+      setState((prev) => ({
+        ...prev,
+        queue: searchResults,
+        currentIndex: searchResults.findIndex((item) => item.id === audio.id),
+        playlist: searchResults,
+        playlistName: "Search Results",
+        playlistSource: "search",
+      }));
+      playAudioInternal(audio, "Search Results", "search");
+    },
+    [playAudioInternal],
+  );
+
+  const playFromPlaylist = useCallback(
+    (audio: Audio, playlistAudios: Audio[], playlistName: string) => {
+      setState((prev) => ({
+        ...prev,
+        queue: playlistAudios,
+        currentIndex: playlistAudios.findIndex((item) => item.id === audio.id),
+        playlist: playlistAudios,
+        playlistName: playlistName,
+        playlistSource: "playlist",
+      }));
+      playAudioInternal(audio, playlistName, "playlist");
     },
     [playAudioInternal],
   );
@@ -335,7 +402,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setPlaylistName = useCallback((name: string) => {
-    setState((prev) => ({ ...prev, playlistName: name.trim() || "Playlist" }));
+    setState((prev) => ({ ...prev, playlistName: name.trim() || "Queue" }));
   }, []);
 
   const setOfflineMode = useCallback((offline: boolean) => {
@@ -345,6 +412,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
   const value: AudioPlayerContextType = {
     state,
     play,
+    playFromDay,
+    playFromSearch,
+    playFromPlaylist,
     pause,
     resume,
     seek,

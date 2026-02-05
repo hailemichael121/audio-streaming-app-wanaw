@@ -35,9 +35,8 @@ export default function AudioPlayer() {
     next,
     previous,
     toggleLoop,
-    addToPlaylist,
     removeFromPlaylist,
-    setPlaylistName,
+    play,
   } = useAudioPlayer();
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
@@ -55,7 +54,24 @@ export default function AudioPlayer() {
       resume();
     }
   };
+  // const getMonthNameFromNumber = (monthNumber: number) => {
+  //   const months = [
+  //     "መስከረም", // Meskerem
+  //     "ጥቅምት", // Tikimt
+  //     "ኅዳር", // Hidar
+  //     "ታኅሣሥ", // Tahsas
+  //     "ጥር", // Tir
+  //     "የካቲት", // Yekatit
+  //     "መጋቢት", // Megabit
+  //     "ሚያዝያ", // Miazia
+  //     "ግንቦት", // Genbot
+  //     "ሰኔ", // Sene
+  //     "ሐምሌ", // Hamle
+  //     "ነሐሴ", // Nehase
+  //   ];
 
+  //   return months[monthNumber - 1] || `ወር ${monthNumber}`;
+  // };
   const formatTime = (time: number) => {
     if (!time || Number.isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -363,44 +379,88 @@ export default function AudioPlayer() {
                 <div className="glass-panel p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="inline-flex items-center gap-2 text-sm font-medium">
-                      <ListMusic className="h-4 w-4" /> Playlist
+                      <ListMusic className="h-4 w-4" />
+                      {state.playlistName}
+                      {
+                        state.playlistSource === "day"
+                        // && audio && (
+                        //   <p className="text-xs text-muted-foreground">
+                        //     {getMonthNameFromNumber(audio.month)}
+                        //   </p>
+                        // )
+                      }
                     </p>
-                    <button
-                      className="glass-chip p-2"
-                      onClick={() => setShowAddToPlaylistDialog(true)}
-                      aria-label="Add current audio to playlist"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
                   </div>
-                  <input
-                    value={state.playlistName}
-                    onChange={(e) => setPlaylistName(e.target.value)}
-                    className="mb-2 w-full rounded-xl border border-white/20 bg-background/40 px-3 py-2 text-sm outline-none"
-                    aria-label="Playlist name"
-                  />
+
+                  {/* Show queue length for search results */}
+                  {state.playlistSource === "search" && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {state.playlist.length} search results
+                    </p>
+                  )}
+
                   <div className="max-h-28 space-y-2 overflow-auto">
                     {state.playlist.length === 0 ? (
                       <p className="text-xs text-muted-foreground">
-                        No tracks in playlist yet.
+                        {state.playlistSource === "search"
+                          ? "No search results to display"
+                          : state.playlistSource === "day"
+                            ? "No tracks in this collection"
+                            : "No tracks in playlist yet"}
                       </p>
                     ) : (
-                      state.playlist.map((playlistAudio) => (
-                        <div
-                          key={playlistAudio.id}
-                          className="flex items-center justify-between rounded-xl bg-background/40 px-3 py-2"
-                        >
-                          <p className="truncate pr-2 text-xs">
-                            {playlistAudio.title}
-                          </p>
-                          <button
-                            onClick={() => removeFromPlaylist(playlistAudio.id)}
-                            aria-label={`Remove ${playlistAudio.title}`}
+                      state.playlist.map((playlistAudio, index) => {
+                        const isCurrent =
+                          state.currentAudio?.id === playlistAudio.id;
+                        const isPlaying = isCurrent && state.isPlaying;
+
+                        return (
+                          <div
+                            key={playlistAudio.id}
+                            onClick={() => {
+                              play(
+                                playlistAudio,
+                                state.playlist,
+                                state.playlistName,
+                                state.playlistSource,
+                              );
+                            }}
+                            className={`flex items-center justify-between rounded-xl px-3 py-2 transition-colors cursor-pointer ${
+                              isCurrent
+                                ? "bg-primary/20 border border-primary/30"
+                                : "bg-background/40 hover:bg-background/60"
+                            }`}
                           >
-                            <X className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        </div>
-                      ))
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground w-5">
+                                {index + 1}
+                              </span>
+                              <p className="truncate pr-2 text-xs">
+                                {playlistAudio.title}
+                                {isCurrent && (
+                                  <span className="ml-2 text-xs text-primary">
+                                    {isPlaying ? "▶ Playing" : "⏸ Paused"}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {state.playlistSource === "playlist" && (
+                                <button
+                                  onClick={() =>
+                                    removeFromPlaylist(playlistAudio.id)
+                                  }
+                                  aria-label={`Remove ${playlistAudio.title}`}
+                                  className="p-1 hover:bg-white/10 rounded"
+                                >
+                                  <X className="h-3 w-3 text-muted-foreground" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>

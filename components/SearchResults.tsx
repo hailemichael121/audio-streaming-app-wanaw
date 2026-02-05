@@ -10,7 +10,7 @@ interface SearchResultsProps {
   results: Audio[];
   onClose: () => void;
   isVisible: boolean;
-  inputRef?: React.RefObject<HTMLInputElement | null>; // Updated to accept null
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export default function SearchResults({
@@ -19,7 +19,7 @@ export default function SearchResults({
   isVisible,
   inputRef,
 }: SearchResultsProps) {
-  const { state, play, pause, resume } = useAudioPlayer();
+  const { state, playFromSearch, pause, resume } = useAudioPlayer();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export default function SearchResults({
     } else if (state.currentAudio?.id === audio.id) {
       resume();
     } else {
-      play(audio, results);
+      playFromSearch(audio, results);
     }
     onClose();
   };

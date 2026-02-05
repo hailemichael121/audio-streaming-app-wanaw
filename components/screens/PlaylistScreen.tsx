@@ -41,7 +41,7 @@ export default function PlaylistScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const [showPlaylistManager, setShowPlaylistManager] = useState(false);
 
-  const { state, play, pause, resume } = useAudioPlayer();
+  const { state, playFromPlaylist, pause, resume } = useAudioPlayer();
 
   useEffect(() => {
     loadPlaylist();
@@ -144,8 +144,12 @@ export default function PlaylistScreen() {
     } else if (state.currentAudio?.id === audio.id) {
       resume();
     } else {
-      // Play from this playlist's queue
-      play(audio, playlist?.audios || []);
+      // Play from this playlist
+      playFromPlaylist(
+        audio,
+        playlist?.audios || [],
+        playlist?.name || "Playlist",
+      );
     }
   };
 
