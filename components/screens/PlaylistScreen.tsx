@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import copy from "clipboard-copy";
+
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -19,6 +21,7 @@ import {
 import { useAudioPlayer } from "@/lib/AudioContext";
 import PlaylistManager from "@/components/PlaylistManager";
 import type { Audio } from "@/lib/types";
+import toast from "react-hot-toast";
 
 interface Playlist {
   id: string;
@@ -40,7 +43,13 @@ export default function PlaylistScreen() {
   const [editName, setEditName] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const [showPlaylistManager, setShowPlaylistManager] = useState(false);
-
+  const [showSharePreview, setShowSharePreview] = useState(false);
+  const [sharePreviewData, setSharePreviewData] = useState<{
+    previewUrl: string | null;
+    shareText: string;
+    shareUrl: string;
+    fullMessage: string;
+  } | null>(null);
   const { state, playFromPlaylist, pause, resume } = useAudioPlayer();
 
   useEffect(() => {
@@ -115,29 +124,157 @@ export default function PlaylistScreen() {
     }
   };
 
-  const sharePlaylist = () => {
+  const sharePlaylist = async () => {
     if (!playlist) return;
 
-    const data = {
-      name: playlist.name,
-      audioIds: playlist.audios.map((a) => a.id),
-    };
+    const playlistName = playlist.name || "My Playlist";
+    const trackCount = playlist.audios.length;
+    const shareText = `${playlistName} – ${trackCount} track${trackCount !== 1 ? "s" : ""}`;
+    const shareUrl = `${window.location.origin}/playlist?id=${playlist.id}`;
+    const fullShareMessage = `${shareText}\n\n${shareUrl}`;
 
-    const encoded = btoa(JSON.stringify(data));
-    const link = `${window.location.origin}/playlist?data=${encoded}`;
+    try {
+      toast.loading("Preparing playlist card...");
 
-    if (navigator.share) {
-      navigator.share({
-        title: playlist.name,
-        text: `Check out this playlist: ${playlist.name}`,
-        url: link,
+      // Pick random audio image (or fallback)
+      let selectedImage = "/images/mahder.png";
+      if (playlist.audios.length > 0) {
+        const randomAudio =
+          playlist.audios[Math.floor(Math.random() * playlist.audios.length)];
+        selectedImage = "/images/mahder.png";
+      }
+
+      // Small square card: 600x600
+      const size = 600;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not supported");
+
+      // Draw the image full-bleed (covers entire canvas)
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve) => {
+        img.onload = () => {
+          // Cover entire canvas (object-cover style)
+          const imgRatio = img.width / img.height;
+          const canvasRatio = size / size; // square
+
+          let drawWidth, drawHeight, drawX, drawY;
+
+          if (imgRatio > canvasRatio) {
+            drawHeight = size;
+            drawWidth = drawHeight * imgRatio;
+            drawX = (size - drawWidth) / 2;
+            drawY = 0;
+          } else {
+            drawWidth = size;
+            drawHeight = drawWidth / imgRatio;
+            drawX = 0;
+            drawY = (size - drawHeight) / 2;
+          }
+
+          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+
+          resolve();
+        };
+        img.onerror = () => {
+          // Fallback: draw default image if failed
+          ctx.fillStyle = "#1a1a1a";
+          ctx.fillRect(0, 0, size, size);
+          resolve();
+        };
+        img.src = selectedImage;
       });
-    } else {
-      navigator.clipboard.writeText(link);
-      alert("Playlist link copied to clipboard!");
+
+      // Subtle dark overlay at bottom for text readability (only bottom 40%)
+      const bottomGradient = ctx.createLinearGradient(0, size * 0.6, 0, size);
+      bottomGradient.addColorStop(0, "transparent");
+      bottomGradient.addColorStop(0.5, "rgba(0,0,0,0.4)");
+      bottomGradient.addColorStop(1, "rgba(0,0,0,0.75)");
+      ctx.fillStyle = bottomGradient;
+      ctx.fillRect(0, size * 0.6, size, size * 0.4);
+
+      // Playlist name (big, white, bold)
+      ctx.font = "bold 48px system-ui, sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(playlistName, size / 2, size - 100);
+
+      // Track count (smaller, light)
+      ctx.font = "36px system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillText(
+        `${trackCount} track${trackCount !== 1 ? "s" : ""}`,
+        size / 2,
+        size - 50,
+      );
+
+      // Small footer
+      ctx.font = "24px system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText("መዝገበ ስብሐት", size / 2, size - 15);
+
+      const previewUrl = canvas.toDataURL("image/png");
+
+      setSharePreviewData({
+        previewUrl,
+        shareText,
+        shareUrl,
+        fullMessage: fullShareMessage,
+      });
+      setShowSharePreview(true);
+
+      toast.dismiss();
+    } catch (err) {
+      console.error("Playlist share card failed:", err);
+      toast.dismiss();
+
+      // Fallback text share
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: playlistName,
+            text: shareText,
+            url: shareUrl,
+          });
+          toast.success("Shared!");
+        } else {
+          await copy(fullShareMessage);
+          toast.success("Link copied!");
+        }
+      } catch (fbErr) {
+        alert(`Copy manually:\n\n${fullShareMessage}`);
+        toast.error("Share failed");
+      }
     }
   };
 
+  const handleSimpleShare = async (
+    shareText: string,
+    shareUrl: string,
+    fullMessage: string,
+  ) => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: playlist?.name || "Playlist",
+          text: shareText,
+          url: shareUrl,
+        });
+        toast.success("Playlist shared!");
+      } else {
+        await navigator.clipboard.writeText(fullMessage);
+        toast.success("Playlist link copied to clipboard!");
+      }
+    } catch (shareErr) {
+      console.error("Simple share failed:", shareErr);
+      await navigator.clipboard.writeText(fullMessage);
+      toast.success("Playlist link copied to clipboard!");
+    }
+  };
   const handlePlayAudio = (audio: Audio) => {
     if (state.currentAudio?.id === audio.id && state.isPlaying) {
       pause();
@@ -271,7 +408,7 @@ export default function PlaylistScreen() {
                   className="w-full px-4 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  Share
+                  Share Playlist
                 </button>
                 <button
                   onClick={() => {
@@ -396,7 +533,106 @@ export default function PlaylistScreen() {
           </div>
         )}
       </section>
+      {/* Share Preview Modal */}
+      {showSharePreview && sharePreviewData && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+          <div className="bg-card/90 rounded-2xl max-w-sm w-full shadow-2xl border border-white/10 overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-base font-semibold">Playlist Share Card</h3>
+              <button
+                onClick={() => {
+                  setShowSharePreview(false);
+                  setSharePreviewData(null);
+                }}
+                className="p-1.5 hover:bg-white/10 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
+            {/* Preview */}
+            <div className="p-6 flex justify-center">
+              {sharePreviewData.previewUrl ? (
+                <img
+                  src={sharePreviewData.previewUrl}
+                  alt="Playlist share card"
+                  className="w-64 h-64 rounded-2xl shadow-xl object-cover"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-black/30 rounded-2xl flex items-center justify-center text-white/60">
+                  <Music2 className="h-16 w-16" />
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 border-t border-white/10 flex gap-3">
+              <button
+                onClick={async () => {
+                  setShowSharePreview(false);
+                  setSharePreviewData(null);
+
+                  try {
+                    if (sharePreviewData.previewUrl) {
+                      const blob = await fetch(
+                        sharePreviewData.previewUrl,
+                      ).then((r) => r.blob());
+                      const file = new File([blob], "playlist-card.png", {
+                        type: "image/png",
+                      });
+
+                      if (
+                        navigator.canShare &&
+                        navigator.canShare({ files: [file] })
+                      ) {
+                        await navigator.share({
+                          title: playlist?.name || "Playlist",
+                          text: sharePreviewData.shareText,
+                          url: sharePreviewData.shareUrl,
+                          files: [file],
+                        });
+                        toast.success("Shared with card!");
+                        return;
+                      }
+                    }
+
+                    // Text fallback
+                    if (navigator.share) {
+                      await navigator.share({
+                        title: playlist?.name || "Playlist",
+                        text: sharePreviewData.shareText,
+                        url: sharePreviewData.shareUrl,
+                      });
+                      toast.success("Shared!");
+                    } else {
+                      await copy(sharePreviewData.fullMessage);
+                      toast.success("Link copied!");
+                    }
+                  } catch (err) {
+                    await copy(sharePreviewData.fullMessage);
+                    toast.success("Link copied!");
+                  }
+                }}
+                className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-xl font-medium flex items-center justify-center gap-2"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowSharePreview(false);
+                  setSharePreviewData(null);
+                }}
+                className="px-5 py-2.5 bg-white/10 rounded-xl"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Playlist Manager Modal */}
       <PlaylistManager
         isOpen={showPlaylistManager}
