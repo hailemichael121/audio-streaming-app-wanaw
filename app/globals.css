@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,8 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -119,7 +119,85 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(
+        circle at 5% 0%,
+        color-mix(in oklch, var(--primary) 24%, transparent) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 95% 10%,
+        color-mix(in oklch, var(--accent) 20%, transparent) 0%,
+        transparent 35%
+      );
+    background-attachment: fixed;
   }
+}
+
+@layer components {
+  .mobile-shell {
+    @apply mx-auto max-w-3xl;
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-white/20 bg-card/70 shadow-lg backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl;
+  }
+
+  .glass-panel {
+    @apply rounded-2xl border border-white/20 bg-card/60 backdrop-blur-xl;
+  }
+
+  .glass-chip {
+    @apply rounded-xl border border-white/20 bg-card/60 text-foreground backdrop-blur-md;
+  }
+
+  .player-control {
+    @apply flex h-11 flex-1 items-center justify-center rounded-2xl border border-white/20 bg-background/65 text-muted-foreground backdrop-blur;
+  }
+
+  .player-play {
+    @apply flex h-11 flex-1 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30 disabled:cursor-wait disabled:opacity-80;
+  }
+
+  .player-slider {
+    background:
+      linear-gradient(var(--color-primary), var(--color-primary)) no-repeat,
+      color-mix(in oklch, var(--muted) 100%, white 10%);
+  }
+
+  .player-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    box-shadow: 0 0 0 2px
+      color-mix(in oklch, var(--background) 70%, transparent);
+  }
+
+  .player-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: none;
+    background: var(--color-primary);
+  }
+}
+@keyframes glow {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse {
+  animation: glow 1.6s ease-in-out infinite;
 }

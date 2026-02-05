@@ -40,23 +40,34 @@ export interface DownloadProgress {
 
 export interface PlayerState {
   currentAudio: Audio | null;
+  queue: Audio[];
+  currentIndex: number;
+  playlist: Audio[]; // Added
+  playlistName: string; // Added
   isPlaying: boolean;
   isLoading: boolean;
   currentTime: number; // in seconds
   duration: number; // in seconds
   volume: number; // 0-1
+  isLooping: boolean;
+  playbackRate: number;
   isOfflineMode: boolean;
 }
 
 export interface AudioPlayerContextType {
   state: PlayerState;
-  play: (audio: Audio) => void;
+  play: (audio: Audio, queue?: Audio[]) => void;
   pause: () => void;
   resume: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
-  next: (audios: Audio[]) => void;
-  previous: (audios: Audio[]) => void;
+  next: () => void;
+  previous: () => void;
+  toggleLoop: () => void;
+  setPlaybackRate: (rate: number) => void;
+  addToPlaylist: (audio: Audio) => void; // Added
+  removeFromPlaylist: (audioId: string) => void; // Added
+  setPlaylistName: (name: string) => void; // Added
   setOfflineMode: (offline: boolean) => void;
 }
 

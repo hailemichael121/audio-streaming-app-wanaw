@@ -1,56 +1,46 @@
-import React from "react"
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { AudioPlayerProvider } from '@/lib/AudioContext'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AudioPlayerProvider } from "@/lib/AudioContext";
+import { ThemeProvider } from "@/components/theme-provider";
+import AudioPlayer from "@/components/AudioPlayer";
+import PwaRegistration from "@/components/PwaRegistration";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Ethiopian Orthodox Church Music',
-  description: 'Stream beautiful Ethiopian Orthodox Church music',
-  generator: 'v0.app',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: 'cover',
+  title: "mezgebe sbhat",
+  description: "Ethiopian Orthodox Church spiritual audio player",
+  manifest: "/manifest.json",
+  themeColor: "#1a1a2e",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "mezgebe sbhat",
   },
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
-        <AudioPlayerProvider>
-          {children}
-          <Analytics />
-        </AudioPlayerProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AudioPlayerProvider>
+            {children}
+            <AudioPlayer />
+            <PwaRegistration />
+          </AudioPlayerProvider>
+        </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

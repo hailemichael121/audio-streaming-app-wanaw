@@ -3,196 +3,221 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Play, Pause, Search, X } from "lucide-react";
+import { ArrowLeft, Play, Pause, Search, X, Music2, Plus } from "lucide-react";
 import { useAudioPlayer } from "@/lib/AudioContext";
-import { getAudios, getMonthName, getPartsForMonth } from "@/lib/audioDataService";
+import {
+  getAudios,
+  getMonthName,
+  getPartsForMonth,
+} from "@/lib/audioDataService";
+import {
+  addAudioToPlaylist,
+  createPlaylist,
+  getPlaylists,
+  type Playlist,
+} from "@/lib/playlistService";
 import type { Audio } from "@/lib/types";
 
 export default function AudioListScreen() {
   const searchParams = useSearchParams();
-  const monthParam = searchParams.get("month");
-  const partParam = searchParams.get("part");
-  const dayParam = searchParams.get("day");
-  const categoryParam = searchParams.get("category");
-
-  const monthNumber = monthParam ? parseInt(monthParam) : 1;
-  const partNumber = partParam ? parseInt(partParam) : dayParam ? parseInt(dayParam) : 1;
-  const categoryId = categoryParam || "one";
+  const monthNumber = parseInt(searchParams.get("month") || "1", 10);
+  const partNumber = parseInt(
+    searchParams.get("part") || searchParams.get("day") || "1",
+    10,
+  );
+  const categoryId = searchParams.get("category") || "one";
 
   const monthName = getMonthName(monthNumber);
   const parts = getPartsForMonth(monthNumber);
   const currentPart = parts.find((p) => p.id === partNumber);
-  const partName = currentPart?.name ?? `Part ${partNumber}`;
 
   const [audios, setAudios] = useState<Audio[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectAudio, setSelectAudio] = useState<Audio | null>(null);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
-  const { state, play, pause } = useAudioPlayer();
+  const { state, play, pause, resume } = useAudioPlayer();
 
-  // Load audios from month constants (month + part) or legacy month/day/category
   useEffect(() => {
-    const loadedAudios = getAudios(monthNumber, partNumber, categoryId);
-    setAudios(loadedAudios);
+    setAudios(getAudios(monthNumber, partNumber, categoryId));
   }, [monthNumber, partNumber, categoryId]);
 
-  // Filter audios based on search query (debounced)
   const filteredAudios = useMemo(() => {
     if (!searchQuery.trim()) return audios;
-
     const query = searchQuery.toLowerCase();
     return audios.filter((audio) => audio.title.toLowerCase().includes(query));
   }, [audios, searchQuery]);
 
   const handlePlayAudio = useCallback(
     (audio: Audio) => {
-      if (state.currentAudio?.id === audio.id && state.isPlaying) {
-        pause();
-      } else if (state.currentAudio?.id === audio.id) {
-        // Resume same audio
-      } else {
-        play(audio);
-      }
+      if (state.currentAudio?.id === audio.id && state.isPlaying) pause();
+      else if (state.currentAudio?.id === audio.id) resume();
+      else play(audio, filteredAudios);
     },
-    [state.currentAudio, state.isPlaying, play, pause],
+    [state.currentAudio, state.isPlaying, pause, resume, play, filteredAudios],
   );
 
-  const handleClearSearch = () => {
-    setSearchQuery("");
-  };
-
-  const formatDuration = (seconds: number | undefined) => {
-    if (!seconds) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const openPlaylistPicker = (audio: Audio) => {
+    setPlaylists(getPlaylists());
+    setSelectAudio(audio);
   };
 
   return (
-    <main className="min-h-svh bg-background text-foreground pb-24">
-      {/* Header: title or inline search in same bar (matches player bar style) */}
-      <header className="sticky top-0 z-10 bg-primary text-primary-foreground shadow-sm">
-        <div className="p-4 flex items-center gap-3">
-          <Link
-            href={`/day?month=${monthNumber}`}
-            className="active:opacity-70 flex-shrink-0"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          {isSearchOpen ? (
-            <>
-              <div className="flex-1 min-w-0 flex items-center gap-2 bg-primary-foreground/10 rounded-lg px-3 py-2">
-                <Search className="w-5 h-5 text-primary-foreground/60 flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search in this part..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                  className="flex-1 bg-transparent text-primary-foreground placeholder-primary-foreground/60 outline-none text-sm min-w-0"
-                />
-              </div>
-              <button
-                onClick={() => {
-                  setIsSearchOpen(false);
-                  handleClearSearch();
-                }}
-                className="active:opacity-70 p-2 flex-shrink-0"
-                aria-label="Close search"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-bold truncate">
-                  {monthName} - {partName}
-                </h1>
-                <p className="text-xs opacity-90 truncate">
-                  {filteredAudios.length === audios.length
-                    ? `${audios.length} songs`
-                    : `${filteredAudios.length} of ${audios.length} songs`}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="active:opacity-70 p-2 flex-shrink-0"
-                aria-label="Search"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            </>
-          )}
+    <main className="mobile-shell min-h-svh pb-44 text-foreground">
+      <header className="sticky top-0 z-10 border-b border-white/10 bg-background/70 backdrop-blur-2xl">
+        <div className="mx-auto max-w-2xl p-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/day?month=${monthNumber}`}
+              className="glass-chip p-2"
+              aria-label="Back"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            {isSearchOpen ? (
+              <>
+                <div className="glass-panel flex min-w-0 flex-1 items-center gap-2 px-3 py-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search in this part"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                    className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className="glass-chip p-2"
+                  aria-label="Close search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-lg font-bold">
+                    {monthName} · {currentPart?.name ?? `Part ${partNumber}`}
+                  </h1>
+                  <p className="text-xs text-muted-foreground">
+                    {filteredAudios.length} of {audios.length} tracks
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className="glass-chip p-2"
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Audio List */}
-      <div className="divide-y divide-border">
-        {filteredAudios.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4">
-            <p className="text-muted-foreground text-center">
-              {searchQuery ? "No audios found" : "No audios available"}
-            </p>
-          </div>
-        ) : (
-          filteredAudios.map((audio) => {
-            const isCurrentAudio = state.currentAudio?.id === audio.id;
-            const isPlaying = isCurrentAudio && state.isPlaying;
-
-            return (
-              <button
-                key={audio.id}
-                onClick={() => handlePlayAudio(audio)}
-                className="w-full text-left p-4 active:bg-muted transition-colors flex items-start gap-3 active:scale-100"
-              >
-                {/* Play/Pause Button */}
-                <div
-                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    isCurrentAudio
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+      <div className="mx-auto max-w-2xl space-y-3 p-4">
+        {filteredAudios.map((audio) => {
+          const isCurrent = state.currentAudio?.id === audio.id;
+          const isPlaying = isCurrent && state.isPlaying;
+          return (
+            <div
+              key={audio.id}
+              className="glass-card w-full p-3" // Changed from button to div
+            >
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handlePlayAudio(audio)}
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground shadow-md"
+                  aria-label={`Play ${audio.title}`}
                 >
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5" />
-                  ) : (
-                    <Play className="w-5 h-5 ml-0.5" />
-                  )}
-                </div>
-
-                {/* Audio Info */}
-                <div className="flex-1 min-w-0">
+                  <Music2 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => handlePlayAudio(audio)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <h3
-                    className={`font-semibold text-sm truncate ${
-                      isCurrentAudio ? "text-accent" : "text-card-foreground"
-                    }`}
+                    className={`truncate text-sm font-semibold ${isCurrent ? "text-primary" : "text-card-foreground"}`}
                   >
                     {audio.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDuration(audio.duration)}
-                  </p>
-                  {isCurrentAudio && (
-                    <div className="flex gap-1 mt-2">
-                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-accent transition-all"
-                          style={{
-                            width: `${
-                              (state.currentTime / (state.duration || 1)) * 100
-                            }%`,
-                          }}
-                        />
-                      </div>
-                    </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openPlaylistPicker(audio);
+                  }}
+                  className="glass-chip p-2"
+                  aria-label="Add to playlist"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handlePlayAudio(audio)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-full ${isCurrent ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                >
+                  {isPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="ml-0.5 h-4 w-4" />
                   )}
-                </div>
-              </button>
-            );
-          })
-        )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {selectAudio && (
+        <div
+          className="fixed inset-0 z-[75] bg-black/50 p-4"
+          onClick={() => setSelectAudio(null)}
+        >
+          <div
+            className="mx-auto mt-20 max-w-md rounded-2xl border border-white/20 bg-card p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-sm font-semibold">
+              Add "{selectAudio.title}" to playlist
+            </h3>
+            <div className="space-y-2">
+              {playlists.map((playlist) => (
+                <button
+                  key={playlist.id}
+                  onClick={() => {
+                    addAudioToPlaylist(playlist.id, selectAudio);
+                    setSelectAudio(null);
+                  }}
+                  className="glass-card w-full p-2 text-left text-sm"
+                >
+                  {playlist.name}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  const created = createPlaylist(
+                    `Playlist ${playlists.length + 1}`,
+                  );
+                  addAudioToPlaylist(created.id, selectAudio);
+                  setSelectAudio(null);
+                }}
+                className="glass-card w-full p-2 text-left text-sm"
+              >
+                + New playlist
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
