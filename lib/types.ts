@@ -42,8 +42,8 @@ export interface PlayerState {
   currentAudio: Audio | null;
   queue: Audio[];
   currentIndex: number;
-  playlist: Audio[]; // Current playlist/queue to display
-  playlistName: string; // Dynamic playlist name based on source
+  playlist: Audio[];
+  playlistName: string;
   playlistSource: "queue" | "search" | "day" | "playlist"; // Where the playlist came from
   isPlaying: boolean;
   isLoading: boolean;
@@ -54,9 +54,11 @@ export interface PlayerState {
   playbackRate: number;
   isOfflineMode: boolean;
 }
+export type RepeatMode = "off" | "one" | "all";
 
 export interface AudioPlayerContextType {
   state: PlayerState;
+  repeatMode: RepeatMode;
   play: (
     audio: Audio,
     queue?: Audio[],
@@ -77,6 +79,7 @@ export interface AudioPlayerContextType {
   next: () => void;
   previous: () => void;
   toggleLoop: () => void;
+  toggleRepeatMode: (mode?: RepeatMode) => void; // Add this line
   setPlaybackRate: (rate: number) => void;
   addToPlaylist: (audio: Audio) => void;
   removeFromPlaylist: (audioId: string) => void;

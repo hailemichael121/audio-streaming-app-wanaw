@@ -93,7 +93,13 @@ export default function SearchResults({
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground">
-                    <Music2 className="h-4 w-4" />
+                    <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+                      <img
+                        src="/images/Tsenatsl3.png"
+                        alt="Disc"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>{" "}
                   </div>
 
                   <div className="min-w-0 flex-1">

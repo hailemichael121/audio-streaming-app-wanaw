@@ -192,7 +192,13 @@ export default function PlaylistManager({
           <div className="flex-1 overflow-y-auto p-4">
             {playlists.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <Music2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+                  <img
+                    src="/images/Tsenatsl3.png"
+                    alt="Disc"
+                    className="h-full w-full object-cover"
+                  />
+                </div>{" "}
                 <p>No playlists yet</p>
               </div>
             ) : (

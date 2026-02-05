@@ -149,7 +149,13 @@ export default function AudioListScreen() {
                   className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground shadow-md"
                   aria-label={`Play ${audio.title}`}
                 >
-                  <Music2 className="h-5 w-5" />
+                  <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+                    <img
+                      src="/images/Tsenatsl3.png"
+                      alt="Disc"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>{" "}
                 </button>
                 <button
                   onClick={() => handlePlayAudio(audio)}

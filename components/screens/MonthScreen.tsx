@@ -95,11 +95,9 @@ export default function MonthScreen() {
         <div className="mx-auto max-w-2xl p-4">
           <div className="mb-4 flex items-start justify-between gap-2">
             <div className="space-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">
-                mezgebe sbhat
-              </h1>
+              <h1 className="text-2xl font-bold tracking-tight">መዝገበ ስብሐት</h1>
               <p className="text-sm text-muted-foreground">
-                Browse and play spiritual tracks
+                የዓመቱ ዋዜማ እና ወረባት በየወራቸው
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -178,9 +176,13 @@ export default function MonthScreen() {
             href={`/day?month=${month.number}`}
             className="group"
           >
-            <article className="glass-card h-full p-4">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
-                <Disc3 className="h-5 w-5" />
+            <article className="glass-card h-full p-4 ">
+              <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+                <img
+                  src="/images/Kdus_Yared2.png"
+                  alt="Disc"
+                  className="h-full w-full object-fit"
+                />
               </div>
               <div className="flex items-start justify-between gap-2">
                 <h2 className="text-sm font-semibold">{month.name}</h2>

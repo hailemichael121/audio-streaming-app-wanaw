@@ -201,3 +201,52 @@
 .animate-pulse {
   animation: glow 1.6s ease-in-out infinite;
 }
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* Smooth touch interactions */
+.touch-none {
+  touch-action: none;
+}
+
+/* Better scrolling behavior */
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection during swipe */
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 12s linear infinite;
+  animation-play-state: running;
+}
+
+/* Pause on hover if you want */
+.animate-marquee:hover {
+  animation-play-state: paused;
+}

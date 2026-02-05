@@ -15,6 +15,8 @@ import {
   releaseWakeLock,
 } from "./mediaSessionService";
 
+export type RepeatMode = "off" | "one" | "all";
+
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(
   undefined,
 );
@@ -40,6 +42,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     playbackRate: 1,
     isOfflineMode: false,
   });
+
+  // Add repeat mode state
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
 
   const getPlayableUrl = useCallback((rawUrl: string) => {
     if (typeof window === "undefined") return rawUrl;
@@ -211,18 +216,34 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const handleEnded = () => {
       setState((prev) => {
-        if (prev.isLooping && audioRef.current) {
+        // Repeat one mode
+        if (repeatMode === "one" && audioRef.current) {
           audioRef.current.currentTime = 0;
           audioRef.current.play().catch(() => undefined);
           return { ...prev, currentTime: 0, isPlaying: true };
         }
 
-        if (prev.queue.length > 0 && prev.currentIndex >= 0) {
+        // Repeat all mode
+        if (
+          repeatMode === "all" &&
+          prev.queue.length > 0 &&
+          prev.currentIndex >= 0
+        ) {
           const nextIndex = (prev.currentIndex + 1) % prev.queue.length;
           setTimeout(() => playAudioInternal(prev.queue[nextIndex]), 0);
           return { ...prev, currentIndex: nextIndex };
         }
 
+        // Repeat off or single song in playlist - move to next if available
+        if (prev.queue.length > 0 && prev.currentIndex >= 0) {
+          const nextIndex = prev.currentIndex + 1;
+          if (nextIndex < prev.queue.length) {
+            setTimeout(() => playAudioInternal(prev.queue[nextIndex]), 0);
+            return { ...prev, currentIndex: nextIndex };
+          }
+        }
+
+        // No repeat mode or end of playlist
         return { ...prev, isPlaying: false };
       });
     };
@@ -248,7 +269,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
       audio.removeEventListener("playing", clearBuffering);
       audio.removeEventListener("canplay", clearBuffering);
     };
-  }, [playAudioInternal, syncMediaSession]);
+  }, [playAudioInternal, syncMediaSession, repeatMode]);
+
   const play = useCallback(
     (
       audio: Audio,
@@ -370,6 +392,29 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     setState((prev) => ({ ...prev, isLooping: !prev.isLooping }));
   }, []);
 
+  const toggleRepeatMode = useCallback(
+    (mode?: RepeatMode) => {
+      if (mode) {
+        setRepeatMode(mode);
+      } else {
+        // Cycle through modes
+        const modes: RepeatMode[] = ["off", "one", "all"];
+        const currentIndex = modes.indexOf(repeatMode);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        setRepeatMode(modes[nextIndex]);
+      }
+
+      // Update global looping state for backward compatibility
+      setState((prev) => ({
+        ...prev,
+        isLooping: mode
+          ? mode === "one" || mode === "all"
+          : repeatMode !== "off",
+      }));
+    },
+    [repeatMode],
+  );
+
   const setPlaybackRate = useCallback(
     (rate: number) => {
       const clamped = Math.max(0.2, Math.min(2, rate));
@@ -411,6 +456,8 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value: AudioPlayerContextType = {
     state,
+    repeatMode,
+
     play,
     playFromDay,
     playFromSearch,
@@ -423,6 +470,7 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
     next,
     previous,
     toggleLoop,
+    toggleRepeatMode,
     addToPlaylist,
     removeFromPlaylist,
     setPlaylistName,

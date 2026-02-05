@@ -185,7 +185,13 @@ export default function PlaylistScreen() {
         </header>
 
         <div className="p-8 text-center text-muted-foreground">
-          <Music2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+            <img
+              src="/images/Tsenatsl3.png"
+              alt="Disc"
+              className="h-full w-full object-cover"
+            />
+          </div>{" "}
           <p>This playlist doesn't exist or has been deleted.</p>
         </div>
       </main>
@@ -303,7 +309,13 @@ export default function PlaylistScreen() {
       <section className="p-4">
         {playlist.audios.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
-            <Music2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+              <img
+                src="/images/Tsenatsl3.png"
+                alt="Disc"
+                className="h-full w-full object-cover"
+              />
+            </div>{" "}
             <p>No tracks in this playlist yet.</p>
             <button
               onClick={() => setShowPlaylistManager(true)}

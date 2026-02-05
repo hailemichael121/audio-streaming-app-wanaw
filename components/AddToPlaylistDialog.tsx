@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Check, Music2 } from "lucide-react";
 import type { Audio } from "@/lib/types";
+import toast from "react-hot-toast";
 
 interface Playlist {
   id: string;
@@ -88,6 +89,16 @@ export default function AddToPlaylistDialog({
     setSelectedPlaylists(new Set([...selectedPlaylists, newPlaylist.id]));
     setNewPlaylistName("");
     setShowNewPlaylistForm(false);
+
+    toast.success("Playlist created and track added!", {
+      duration: 2000,
+      position: "bottom-center",
+      style: {
+        background: "var(--color-primary)",
+        color: "var(--color-primary-foreground)",
+        borderRadius: "12px",
+      },
+    });
   };
 
   const saveSelections = () => {
@@ -117,6 +128,16 @@ export default function AddToPlaylistDialog({
 
       localStorage.setItem("playlists", JSON.stringify(updated));
     }
+
+    toast.success("Playlist updated successfully!", {
+      duration: 2000,
+      position: "bottom-center",
+      style: {
+        background: "var(--color-primary)",
+        color: "var(--color-primary-foreground)",
+        borderRadius: "12px",
+      },
+    });
 
     onSuccess?.();
     onClose();
@@ -149,7 +170,13 @@ export default function AddToPlaylistDialog({
           <div className="flex-1 overflow-y-auto p-4">
             {playlists.length === 0 && !showNewPlaylistForm ? (
               <div className="text-center py-8 text-muted-foreground">
-                <Music2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <div className="h-9 w-9 rounded-xl overflow-hidden mb-2">
+                  <img
+                    src="/images/Tsenatsl3.png"
+                    alt="Disc"
+                    className="h-full w-full object-cover"
+                  />
+                </div>{" "}
                 <p>No playlists yet. Create one to get started.</p>
               </div>
             ) : (

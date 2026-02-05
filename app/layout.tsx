@@ -5,6 +5,7 @@ import { AudioPlayerProvider } from "@/lib/AudioContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import AudioPlayer from "@/components/AudioPlayer";
 import PwaRegistration from "@/components/PwaRegistration";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,6 +37,18 @@ export default function RootLayout({
         >
           <AudioPlayerProvider>
             {children}
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                style: {
+                  background: "var(--color-primary)",
+                  color: "var(--color-primary-foreground)",
+                  borderRadius: "12px",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            />
             <AudioPlayer />
             <PwaRegistration />
           </AudioPlayerProvider>
