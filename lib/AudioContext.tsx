@@ -234,7 +234,12 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           return { ...prev, currentIndex: nextIndex };
         }
 
-        // Repeat off or single song in playlist - move to next if available
+        // Repeat off mode - don't play next, just stop
+        if (repeatMode === "off") {
+          return { ...prev, isPlaying: false };
+        }
+
+        // Default behavior (for backward compatibility or edge cases)
         if (prev.queue.length > 0 && prev.currentIndex >= 0) {
           const nextIndex = prev.currentIndex + 1;
           if (nextIndex < prev.queue.length) {
@@ -243,11 +248,9 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
 
-        // No repeat mode or end of playlist
         return { ...prev, isPlaying: false };
       });
     };
-
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("loadedmetadata", updateDuration);
     audio.addEventListener("play", updatePlayingState);
@@ -394,23 +397,25 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const toggleRepeatMode = useCallback(
     (mode?: RepeatMode) => {
+      let newMode: RepeatMode;
+
       if (mode) {
-        setRepeatMode(mode);
+        newMode = mode;
       } else {
         // Cycle through modes
         const modes: RepeatMode[] = ["off", "one", "all"];
         const currentIndex = modes.indexOf(repeatMode);
         const nextIndex = (currentIndex + 1) % modes.length;
-        setRepeatMode(modes[nextIndex]);
+        newMode = modes[nextIndex];
       }
 
-      // Update global looping state for backward compatibility
-      setState((prev) => ({
-        ...prev,
-        isLooping: mode
-          ? mode === "one" || mode === "all"
-          : repeatMode !== "off",
-      }));
+      setRepeatMode(newMode);
+
+      // Update audio element's loop property (only for "one" mode)
+      if (audioRef.current) {
+        // HTML audio loop attribute only handles single track repeat
+        audioRef.current.loop = newMode === "one";
+      }
     },
     [repeatMode],
   );

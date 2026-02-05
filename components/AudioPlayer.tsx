@@ -181,15 +181,14 @@ export default function AudioPlayer() {
     });
   };
 
-  // Toggle repeat mode (off -> one -> all -> off)
   const handleRepeatToggle = () => {
     toggleRepeatMode(); // This will cycle through modes
 
-    // Show toast
+    // Show toast - you're showing NEXT mode, not current
     const modes = ["off", "one", "all"];
     const currentIndex = modes.indexOf(repeatMode);
     const nextIndex = (currentIndex + 1) % modes.length;
-    const nextMode = modes[nextIndex];
+    const nextMode = modes[nextIndex]; // This shows what it WILL BE
 
     const modeMessages = {
       off: "Repeat: Off",
@@ -207,7 +206,6 @@ export default function AudioPlayer() {
       },
     });
   };
-
   const handlePlayPause = () => {
     if (!audio) return;
 
@@ -654,6 +652,8 @@ export default function AudioPlayer() {
                                     : "bg-primary/20 border border-primary/40 scale-105"
                               }`}
                             />
+
+                            {/* Show different icons based on repeat mode */}
                             {repeatMode === "one" ? (
                               <Repeat1
                                 className={`h-5 w-5 transition-colors ${
@@ -662,7 +662,7 @@ export default function AudioPlayer() {
                                     : "text-muted-foreground"
                                 }`}
                               />
-                            ) : (
+                            ) : repeatMode === "all" ? (
                               <Repeat
                                 className={`h-5 w-5 transition-colors ${
                                   repeatMode === "all"
@@ -670,7 +670,18 @@ export default function AudioPlayer() {
                                     : "text-muted-foreground"
                                 }`}
                               />
+                            ) : (
+                              // When repeat is off, show a crossed repeat icon
+                              <div className="relative">
+                                <Repeat className="h-5 w-5 text-muted-foreground" />
+                                {/* Add a diagonal line through the icon */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-6 h-[2px] bg-muted-foreground rotate-45 transform origin-center" />
+                                </div>
+                              </div>
                             )}
+
+                            {/* Only show the indicator dot when repeat is active */}
                             {(repeatMode === "one" || repeatMode === "all") && (
                               <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary shadow-sm border border-white/40" />
                             )}
